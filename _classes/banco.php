@@ -25,73 +25,144 @@ class banco
     /** @var string Nome do Banco de Dados */
     private $banco = "aulas";
 
-    /** @var resource Conexão com o banco */
+    /** @var PDOObject Conexão com o banco */
     private $conexao = NULL;
 
-    /** @var int Quantidade de linhas afetadas pela ultima operação */
-    private $linhasAfetadas = -1;
 
-
+    /** Realiza a conexão com o Banco de Dados */
     public function __construct()
     {
-        $this->conecta();
+        $this->conectar();
     }
 
+    /** Desconecta com o Banco de Dados */
     public function __destruct()
     {
-        if ($this->getConexao() != NULL) {
-            pg_close($this->getConexao());
-        }
+        $this->desconectar();
     }
 
-    public function conecta()
+    /** Conecta no Banco de Dados */
+    public function conectar()
     {
-        //$this->conexao = pg_connect("host={$this->servidor} port={$this->porta} dbname={$this->banco} user={$this->usuario} password={$this->senha}"); //or die("Erro");
-        try {
-            $conn = new PDO("pgsql:host={$this->servidor} port={$this->porta} dbname={$this->banco} user={$this->usuario} password={$this->senha}"); //or die("Erro");
-            $this->setConexao($conn);
-            echo '<script> console.log("Conectado ao Banco"); </script>'; //Debug
-        } catch (PDOException $e) {
-        }
-
+        $conn = new PDO("pgsql:host={$this->getServidor()} port={$this->getPorta()} dbname={$this->getBanco()} user={$this->getUsuario()} password={$this->getSenha()}"); //or die("Erro");
+        $this->setConexao($conn);
     }
 
+    /** Desconecta no Banco de Dados */
+    public function desconectar()
+    {
+        if ($this->getConexao() != NULL) {
+            $this->conexao = NULL;
+        }
+    }
+
+    /**
+     * Executa uma instrução SQL no Banco de Dados
+     * @param null $sql Instrução SQL
+     * @param array $param Parâmetro do SQL
+     * @return mixed Retorna <b>PDOStatement</b> em caso de sucesso e <b>FALSE</b> em caso de falha.
+     */
+    public function executarSQL($sql = NULL, $param = array())
+    {
+        $st = $this->getConexao()->prepare($sql);
+        $st->execute($param);
+        return $st;
+    }
+
+
+    /**
+     * @return string
+     */
+    public function getServidor()
+    {
+        return $this->servidor;
+    }
+
+    /**
+     * @param string $servidor
+     */
+    public function setServidor($servidor)
+    {
+        $this->servidor = $servidor;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPorta()
+    {
+        return $this->porta;
+    }
+
+    /**
+     * @param string $porta
+     */
+    public function setPorta($porta)
+    {
+        $this->porta = $porta;
+    }
+
+    /**
+     * @return string
+     */
+    public function getUsuario()
+    {
+        return $this->usuario;
+    }
+
+    /**
+     * @param string $usuario
+     */
+    public function setUsuario($usuario)
+    {
+        $this->usuario = $usuario;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSenha()
+    {
+        return $this->senha;
+    }
+
+    /**
+     * @param string $senha
+     */
+    public function setSenha($senha)
+    {
+        $this->senha = $senha;
+    }
+
+    /**
+     * @return string
+     */
+    public function getBanco()
+    {
+        return $this->banco;
+    }
+
+    /**
+     * @param string $banco
+     */
+    public function setBanco($banco)
+    {
+        $this->banco = $banco;
+    }
+
+    /**
+     * @return resource
+     */
     public function getConexao()
     {
-        if ($this->conexao != NULL) {
-            return $this->conexao;
-        } else {
-            $this->conecta();
-            return $this->conexao;
-        }
+        return $this->conexao;
     }
 
+    /**
+     * @param resource $conexao
+     */
     public function setConexao($conexao)
     {
         $this->conexao = $conexao;
     }
-
-    public function executaSQL($sql = NULL)
-    {
-        $st = $this->getConexao()->prepare($sql);
-        $st->execute();
-        return $st;
-    }
-
-    /**
-     * @return int
-     */
-    public function getLinhasAfetadas()
-    {
-        return $this->linhasAfetadas;
-    }
-
-    /**
-     * @param int $linhasAfetadas
-     */
-    public function setLinhasAfetadas($linhasAfetadas)
-    {
-        $this->linhasAfetadas = $linhasAfetadas;
-    }
-
 }

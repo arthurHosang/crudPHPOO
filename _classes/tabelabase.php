@@ -7,23 +7,109 @@ require_once("banco.php");
 
 abstract class tabelabase extends banco
 {
-    public $tabela = "";
+    /** @var string Nome da Tabela da Classe. */
+    private $tabela = "";
 
+    /** @var string Nome do Schema da Classe. */
+    private $schema = "";
+
+    /** @var PDOStatement Armazena o Statement da última constulta. */
+    private $statement = null;
+
+    /**
+     * Insere nas Propriedades da Classe as informações do DataSet informado por parâmetro
+     * @param FETCH_ASSOC $ds Vetor na estrutura PDO::FETCH_ASSOC. Pode ser obtido pela executção de $pdo->prepare($sql)->execute()->fetch(PDO::FETCH_ASSOC);
+     * @return null
+     */
+    public abstract function importarDataset($ds);
+
+    /**
+     * Insere as informações no Banco de Dados
+     * @return mixed Se bem sucedida, <b>TRUE</b>; Se mau sucedida, retorna uma <b>STRING</b> com a descrição do erro.
+     */
     public abstract function inserirBanco();
 
+    /**
+     * Atualiza o Banco com as informações da Classe
+     * @return mixed Se bem sucedida, <b>TRUE</b>; Se mau sucedida, retorna uma <b>STRING</b> com a descrição do erro.
+     */
     public abstract function atualizarBanco();
 
+    /**
+     * Exclui o Registro atual do Banco
+     * @return mixed Se bem sucedida, <b>TRUE</b>; Se mau sucedida, retorna uma <b>STRING</b> com a descrição do erro.
+     */
     public abstract function excluirBanco();
 
-    public function executaConsultaUnica($sql = NULL)
+    /**
+     * @param string $sql Instrução SQL a ser executada
+     * @param array $param Array com os dados para a substituição
+     */
+    public function carregarRegistroPorSql($sql, $param = array())
     {
-        $st = $this->executaSQL($sql);
+        $this->setStatement(parent::executarSQL($sql, $param));
+    }
 
-        if ($st->rowCount() >= 1) {
-            $resultado = $st->fetch(PDO::FETCH_NUM);
-            return $resultado[0];
+    /**
+     * Carrega a Classe com o próximo registro do Statement.
+     * @return bool
+     */
+    public function proximo()
+    {
+        $ds = $this->getStatement()->fetch(PDO::FETCH_ASSOC);
+        if ($ds != false) {
+            $this->importarDataset($ds);
+            return true;
         } else {
             return false;
         }
+    }
+
+    /**
+     * @return string
+     */
+    public function getTabela()
+    {
+        return $this->tabela;
+    }
+
+    /**
+     * @param string $tabela
+     */
+    public function setTabela($tabela)
+    {
+        $this->tabela = $tabela;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSchema()
+    {
+        return $this->schema;
+    }
+
+    /**
+     * @param string $schema
+     */
+    public function setSchema($schema)
+    {
+        $this->schema = $schema;
+    }
+
+    /**
+     * @return null
+     */
+    public function getStatement()
+    {
+        return $this->statement;
+    }
+
+    /**
+     * @param null $statement
+     */
+    public function setStatement($statement)
+    {
+        $this->statement = $statement;
     }
 }

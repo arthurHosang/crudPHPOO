@@ -1,119 +1,158 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: arthur
- * Date: 09/10/15
- * Time: 10:52
- */
 require_once("tabelabase.php");
 
-class clientes extends tabelabase
+class pessoas extends tabelabase
 {
-
-    private $cid;
+    private $ci_clientes;
     private $cnome;
     private $csobrenome;
 
-    public function __construct($id = NULL, $nome = NULL, $sobrenome = NULL)
+
+    public function __construct($id = NULL, $nome = NULL, $sobrenome = NULL, $cpf = NULL, $telefone = NULL, $email = NULL, $dataNasc = NULL, $endereco = NULL, $iplanos = NULL)
     {
         parent::__construct();
-        $this->tabela = "clientes";
+        $this->setSchema("aulas");
+        $this->setTabela("pessoas");
 
-        $this->setCid($id);
-        $this->setCid($nome);
-        $this->setCid($sobrenome);
+        $this->ci_clientes = $id;
+        $this->cnome = $nome;
+        $this->csobrenome = $sobrenome;
     }
 
-    public function impStatement($ds)
+    /**
+     * Insere nas Propriedades da Classe as informações do DataSet informado por parâmetro
+     * @param FETCH_ASSOC $ds Vetor na estrutura PDO::FETCH_ASSOC. Pode ser obtido pela executção de $pdo->prepare($sql)->execute()->fetch(PDO::FETCH_ASSOC);
+     * @return null
+     */
+    public function importarDataset($ds)
     {
-        $this->setCid($ds['id']);
-        $this->setCnome($ds['nome']);
-        $this->setCsobrenome($ds['sobrenome']);
+        $this->ci_clientes = ($ds['i_clientes']);
+        $this->cnome = $ds['nome'];
+        $this->csobrenome = $ds['sobrenome'];
+
+        /*
+         * Busca de FKs
+         * $b = new banco();
+        $st = $b->executarSQL("SELECT planos.descricao, planos.valor
+                                FROM aulas.clientes
+                                  LEFT JOIN aulas.planos ON (pessoas.i_planos = planos.i_planos)
+                                WHERE pessoas.i_clientes = :i_clientes", array(":i_clientes" => $this->getCiclientes()));
+        $ds = $st->fetch(PDO::FETCH_ASSOC);
+
+        $this->fdescricaoContratoVigente = $ds['descricao'];
+        unset($b);*/
     }
 
+    /**
+     * Função complementar a inserirBanco() e atualizarBanco().
+     * Esta função executa processos que são comuns as duas funções citadas anteriormente.
+     * @param FETCH_ASSOC $ds Vetor na estrutura PDO::FETCH_ASSOC. Pode ser obtido pela executção de $pdo->prepare($sql)->execute()->fetch(PDO::FETCH_ASSOC);
+     * @return mixed
+     */
+    private function gravarBanco($sql)
+    {
+
+        $params = array();
+            $params = array(':i_clientes' => $this->getCiclientes(),
+                ':nome' => $this->getCnome(),
+                ':sobrenome' => $this->getCsobrenome());
+        
+        $st = $this->executarSQL($sql, $params);
+        if ($st->rowCount() >= 1) {
+            return true;
+        } else {
+            return $st;
+        }
+    }
+
+    /**
+     * Insere as informações no Banco de Dados
+     * @return mixed Se bem sucedida, <b>TRUE</b>; Se mau sucedida, retorna uma <b>STRING</b> com a descrição do erro.
+     */
     public function inserirBanco()
     {
-        if ($this->getCid() == NULL) {
-            $this->gerarCid();
+        if (($this->getCiclientes() == NULL) || !(is_numeric($this->getCiclientes()))) {
+            $this->setCiclientes($this->gerarCi_clientes());
         }
 
-        $sql = "INSERT INTO aulas.clientes (id, nome, sobrenome) values (:id, :nome, :sobrenome)";
-        $st = $this->getConexao()->prepare($sql);
-        $st->bindValue(':id', $this->getCid(), PDO::PARAM_INT);
-        $st->bindValue(':nome', $this->getCnome(), PDO::PARAM_STR);
-        $st->bindValue(':sobrenome', $this->getCsobrenome(), PDO::PARAM_STR);
-
-        $st->execute();
-
+        $sql = "INSERT INTO aulas.clientes (i_clientes, nome, sobrenome) VALUES (:i_clientes, :nome, :sobrenome)";
+        
+        return $this->gravarBanco($sql);
     }
 
+    /**
+     * Atualiza o Banco com as informações da Classe
+     * @return mixed Se bem sucedida, <b>TRUE</b>; Se mau sucedida, retorna uma <b>STRING</b> com a descrição do erro.
+     */
     public function atualizarBanco()
     {
-        $sql = "UPDATE aulas.clientes SET nome=:nome, sobrenome=:sobrenome WHERE id=:id ;";
-        $st = $this->getConexao()->prepare($sql);
-        $st->bindValue(':id', $this->getCid(), PDO::PARAM_INT);
-        $st->bindValue(':nome', $this->getCnome(), PDO::PARAM_STR);
-        $st->bindValue(':sobrenome', $this->getCsobrenome(), PDO::PARAM_STR);
+        $sql = "UPDATE aulas.clientes SET nome=:nome, sobrenome=:sobrenome WHERE pessoas.i_clientes=:i_clientes;";
 
-        $st->execute();
-
+        return $this->gravarBanco($sql);
     }
 
+    /**
+     * Exclui o Registro atual do Banco
+     * @return mixed Se bem sucedida, <b>TRUE</b>; Se mau sucedida, retorna uma <b>STRING</b> com a descrição do erro.
+     */
     public function excluirBanco()
     {
-        $sql = "DELETE FROM aulas.clientes WHERE id=:id";
+        $sql = "DELETE FROM aulas.clientes WHERE pessoas.i_clientes = :i_clientes";
         $st = $this->getConexao()->prepare($sql);
-        $st->bindValue(':id', $this->getCid(), PDO::PARAM_INT);
+        $st->execute(array(':i_clientes' => $this->getCiclientes()));
 
-        $st->execute();
-
+        if ($st->rowCount() >= 1) {
+            return true;
+        } else {
+            return $st;
+        }
     }
 
-    public function buscarClientes($tratamento = "")
-    {
-        $sql = "SELECT * FROM aulas.clientes " . $tratamento;
-        $st = $this->getConexao()->prepare($sql);
-        $st->execute();
-        return $st;
-    }
-
-    public function buscarCliente()
-    {
-        $sql = "SELECT * FROM aulas.clientes where id = :id";
-        $st = $this->getConexao()->prepare($sql);
-        $st->bindValue(':id', $this->getCid(), PDO::PARAM_INT);
-        $st->execute();
-        return $st;
-    }
-
-
-    public function gerarCid()
-    {
-        $sql = "SELECT coalesce(max(clientes.id),0)+1 as novoid from aulas.clientes";
-        $novoCid = $this->executaConsultaUnica($sql);
-        $this->setCid($novoCid);
-    }
-
-    //GETTERS & SETTERS
     /**
-     * @return null
+     * Retorna o valor do Maior pessoas,id no banco somado a 1. Se não houver nenhum pessoas.id no banco, a função retornará 1.
+     * @return integer Código do maior ID mais 1
      */
-    public function getCid()
+    public function gerarCi_clientes()
     {
-        return $this->cid;
+        $sql = "SELECT coalesce(max(pessoas.i_clientes),0)+1 AS novoid FROM aulas.clientes";
+        $st = $this->getConexao()->prepare($sql);
+        $st->execute();
+        $res = $st->fetch(PDO::FETCH_ASSOC);
+
+        $novoCid = $res['novoid'];
+        return $novoCid;
     }
 
     /**
-     * @param null $cid
+     * Carrega as informações da pessoa enviada por parâmtro.
+     * @param integer $id Código da Pessoa
      */
-    public function setCid($cid)
+    public function carregarRegistroPorPK($id)
     {
-        $this->cid = $cid;
+        $sql = "SELECT * FROM aulas.clientes WHERE pessoas.i_clientes = :i_clientes";
+        $params = array(':i_clientes' => $id);
+        $this->carregarRegistroPorSql($sql, $params);
     }
 
     /**
-     * @return null
+     * @return integer
+     */
+    public function getCiclientes()
+    {
+        return $this->ci_clientes;
+    }
+
+    /**
+     * @param integer $ci_clientes
+     */
+    public function setCiclientes($ci_clientes)
+    {
+        $this->ci_clientes = $ci_clientes;
+    }
+
+    /**
+     * @return string
      */
     public function getCnome()
     {
@@ -121,7 +160,7 @@ class clientes extends tabelabase
     }
 
     /**
-     * @param null $cnome
+     * @param string $cnome
      */
     public function setCnome($cnome)
     {
@@ -129,7 +168,7 @@ class clientes extends tabelabase
     }
 
     /**
-     * @return null
+     * @return string
      */
     public function getCsobrenome()
     {
@@ -137,13 +176,12 @@ class clientes extends tabelabase
     }
 
     /**
-     * @param null $csobrenome
+     * @param string $csobrenome
      */
     public function setCsobrenome($csobrenome)
     {
         $this->csobrenome = $csobrenome;
     }
-
 
 
 }
